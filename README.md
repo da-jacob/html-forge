@@ -16,7 +16,7 @@
 2. Create a **new project** – HtmlForge will generate a folder with basic structure (`index.html`, `assets/`, etc.).
 3. Use `<!--- include "file.html" -->` anywhere in your HTML to reuse components.
 4. Start the **live server** for previewing and editing with instant reload.
-5. Use **Build** to generate fully resolved static HTML files for deployment.
+5. Use **Build** to generate fully resolved static HTML files. The output will be placed in the `.out` directory within your project folder.
 
 ## 📁 Example
 
