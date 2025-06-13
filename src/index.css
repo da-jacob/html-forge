@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.title-bar {
+  -webkit-app-region: drag;
+  user-select: none;
+}
+.title-bar .btns {
+  -webkit-app-region: no-drag;
+}
