@@ -62,4 +62,4 @@ HtmlForge is available for **Windows** and can be downloaded from the [Releases 
 * Dark mode / themes
 
 ## 📃 License
-MIT
+MPL-2.0
