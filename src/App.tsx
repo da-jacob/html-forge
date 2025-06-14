@@ -21,6 +21,7 @@ declare global {
             serverStop: (data: string) => void;
             buildProject: (data: string) => Promise<void>;
             openExternal: (url: string) => void,
+            getProject: (url: string) => Promise<{path: string, lastBuild: Date|null, git: any}>,
         };
     }
 }
@@ -70,7 +71,7 @@ const App = () => {
     return (
         <>
             <TitleBar />
-            <div className="flex h-screen pt-10">
+            <div className="flex h-screen">
                 <Sidebar
                     onSettings={() => setSetupOpen(true)}
                     onProject={openProject}

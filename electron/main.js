@@ -5,9 +5,10 @@ const fs = require("fs");
 var prettier = require('prettier');
 
 const express = require("express");
-const parseComments = require("parse-html-comments");
+const simpleGit = require('simple-git');
 const livereload = require("livereload");
 const connectLiveReload = require("connect-livereload");
+const { exec } = require('child_process');
 
 let rootDirectory = "";
 
@@ -18,6 +19,15 @@ let liveReloadPort = 35729;
 let win = null;
 
 const includeRegex = /<!--\s*include\s+"([^"]+)"(?:\s+([^>]+))?\s*-->/g;
+
+
+function isGitInstalled() {
+    return new Promise((resolve) => {
+        exec('git --version', (error) => {
+            resolve(!error);
+        });
+    });
+}
 
 function parseIncludeParams(paramString) {
     const params = {};
@@ -125,14 +135,14 @@ function createWindow() {
 
     const configPath = path.join(app.getPath('userData'), 'config.json');
 
-    console.log(configPath);
-
     if (app.isPackaged) {
        const indexPath = path.join(__dirname, '../dist/index.html');
         win.loadFile(indexPath);
     } else {
         win.loadURL('http://localhost:5173');
     }
+
+    // win.webContents.openDevTools();
 
     ipcMain.on("window-minimize", () => {
         win.minimize();
@@ -173,6 +183,33 @@ function createWindow() {
                 type: "get-projects",
                 data: projects,
             });
+        }
+    });
+
+    ipcMain.handle("get-project", async (_, data) => {
+        const buildExists = fs.existsSync(path.join(rootDirectory, data, ".out"));
+
+        let gitStatus = "Not inizialized";
+        if(await isGitInstalled()) {
+            const git = simpleGit(path.join(rootDirectory, data));
+            const isRepo = await git.checkIsRepo('root');
+            if(isRepo){
+                const [status, branch] = await Promise.all([
+                    git.status(),
+                    git.branchLocal()
+                ]);
+    
+                gitStatus = `${branch.current} (${status.files.length} changes)`
+            }
+        } else {
+            gitStatus = "Git is not installed";
+        }
+
+        
+        return {
+            path: path.join(rootDirectory, data),
+            lastBuild: buildExists ? fs.statSync(path.join(rootDirectory, data, ".out")).mtime : null,
+            git: gitStatus
         }
     });
 

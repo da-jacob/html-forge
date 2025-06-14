@@ -1,24 +1,30 @@
 import { Icon } from '@iconify/react';
 
+import logo from "../assets/logo.png";
+
 export const Sidebar = ({projects, onSettings, onProject, onNewProject, activeProject}: {projects: string[], onSettings: () => void, onProject: (project: string) => void, onNewProject: () => void, activeProject: string}) => {
     return (
-        <div className="w-80 h-full bg-indigo-900 p-4 flex flex-col justify-between shrink-0">
-            <button onClick={onNewProject} className="w-full shrink-0 bg-white text-slate-800 flex items-center text-lg justify-center gap-2 rounded-md pl-4 pr-8 py-2 transition-colors hover:bg-indigo-600 hover:text-white cursor-pointer shadow-lg active:bg-indigo-700 mb-8">
-                <Icon icon={"solar:add-square-broken"} className='text-xl' /> New project
+        <div className="w-80 h-full bg-gradient-to-t from-indigo-900 to-indigo-700 p-4 flex flex-col justify-between shrink-0 select-none">
+            <div className='flex items-center gap-4 p-2 font-semibold text-white mb-4'>
+                <img src={logo} width={24} height={24} />
+                HtmlForge
+            </div>
+            <button onClick={onNewProject} className="w-full shrink-0 flex items-center text-white px-2.5 py-2 transition-colors gap-3 rounded-lg hover:bg-indigo-500/50 cursor-pointer">
+                <Icon icon={"solar:add-square-broken"} className='text-lg leading-none' /> Create new project
             </button>
-            <h2 className='text-white/40 mb-4'>Projects</h2>
+            <h2 className='text-indigo-300 my-4 px-2.5'>Projects</h2>
             <div className='flex flex-col h-full shrink overflow-auto -mx-4 mb-4'>
-                <div className='flex flex-col shrink grow h-full'>
+                <div className='flex flex-col shrink grow h-full px-4 gap-1'>
                     {projects.map((project, index) => {
                         return (
-                            <button key={index} className={`shrink-0 text-white h-10 px-4 text-left hover:bg-white/10 cursor-pointer ${activeProject === project ? 'bg-white/10' : ''}`} onClick={() => onProject(project)}>
+                            <button key={index} className={`w-full shrink-0 flex items-center text-white px-2.5 py-2 transition-colors gap-3 rounded-lg hover:bg-indigo-500/50 cursor-pointer ${activeProject === project ? 'bg-indigo-500/50' : ''}`} onClick={() => onProject(project)}>
                                 {project}
                             </button>
                         )
                     })}
                 </div>
             </div>
-            <button onClick={onSettings} className=" shrink-0w-full text-white flex items-center text-lg justify-center gap-2 rounded-md pl-4 pr-8 py-2 transition-colors hover:bg-indigo-800 hover:text-white cursor-pointer active:bg-indigo-700">
+            <button onClick={onSettings} className="w-full shrink-0 flex items-center text-white px-2.5 py-2 transition-colors gap-3 rounded-lg hover:bg-indigo-500/50 cursor-pointer">
                 <Icon icon={"solar:settings-broken"} className='text-xl' /> Settings
             </button>
         </div>

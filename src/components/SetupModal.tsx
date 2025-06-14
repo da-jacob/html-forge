@@ -17,7 +17,7 @@ export const SetupModal = ({open, onClose}: {open: boolean, onClose: () => void}
     }
 
     return (
-        <div className={`fixed top-10 left-0 right-0 bottom-0 bg-slate-100/10 backdrop-blur-lg pt-10 justify-center px-4 items-start ${open ? 'flex' : 'hidden'}`}>
+        <div className={`fixed top-0 left-0 right-0 bottom-0 bg-slate-100/10 backdrop-blur-lg pt-10 justify-center px-4 items-start ${open ? 'flex' : 'hidden'}`}>
             <div className="bg-slate-50 w-xl rounded-lg shadow-md">
                 <div className="px-4 py-2 font-semibold">
                     Configure HtmlForge

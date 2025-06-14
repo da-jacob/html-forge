@@ -14,4 +14,5 @@ contextBridge.exposeInMainWorld("electronApi", {
     serverStart: (data) => ipcRenderer.invoke('server-start', data),
     buildProject: (data) => ipcRenderer.invoke('project-build', data),
     openExternal: (url) => ipcRenderer.send('open-external', url),
+    getProject: (data) => ipcRenderer.invoke('get-project', data)
 });
