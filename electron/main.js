@@ -204,10 +204,15 @@ function createWindow() {
     });
 
     ipcMain.handle("create-project", async (_, data) => {
-        const unpacked = path.join(process.resourcesPath, 'app.asar.unpacked', 'project-structure');
+        let structurePath = "";
+        if (app.isPackaged) {
+            structurePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'project-structure');
+        } else {
+            structurePath = path.join(__dirname, "../project-structure");
+        }
         if (rootDirectory) {
             fs.cpSync(
-                unpacked,
+                structurePath,
                 path.join(rootDirectory, data),
                 { recursive: true }
             );
