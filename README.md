@@ -56,6 +56,7 @@ HtmlForge is available for **Windows** and can be downloaded from the [Releases 
 
 ## 🔧 Roadmap / Ideas
 
+* Use HTML-like attributes to send to included files (eg. `<!-- include "components/button.html" text="..." -->`)
 * Support for macOS and Linux
 * Option to initialize Git repo on new project
 * Button to open project in external editor (e.g. VS Code)
