@@ -20,6 +20,8 @@
 6. Start the **live server** for previewing and editing with instant reload.
 7. Use **Build** to generate fully resolved static HTML files. The output will be placed in the `.out` directory within your project folder.
 
+> During build, the `components/` folder (used for include templates) is excluded from the output.
+
 ## 📁 Example
 
 **index.html**

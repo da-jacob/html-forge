@@ -261,38 +261,26 @@ function createWindow() {
         files.forEach(file => {
             if(file !== ".out") {
                 if(fs.statSync(path.join(rootDirectory, data, file)).isDirectory()) {
-                    fs.mkdirSync(path.join(rootDirectory, data, ".out", file));
+                    if(file !== "components"){
+                        fs.mkdirSync(path.join(rootDirectory, data, ".out", file));
+                    }
                 } else {
-                    if(file.endsWith('.html')) {
+                    if(file.endsWith('.html') && !file.startsWith("components/") && !file.startsWith("components\\")) {
                         const f = fs.readFileSync(path.join(rootDirectory, data, file), "utf8");
 
-                        const comments = parseComments(f);
-
-                        let modifiedData = f;
-
-                        comments.matches.forEach((match) => {
-                            const comment = match.groups.whole.trim();
-                            if (comment.includes("<!-- include")) {
-                                const p = comment.substr(14, comment.length - 19);
-                                const data2 = fs.readFileSync(
-                                    path.join(rootDirectory, data, p),
-                                    "utf8"
-                                );
-                                modifiedData = modifiedData.replace(comment, data2);
-                            }
-                        });
+                        let modifiedData = processIncludes(f, rootDirectory, data);
 
                         prettier.format(modifiedData, {parser: 'html'}).then((formatted) => {
                             fs.writeFileSync(path.join(rootDirectory, data, ".out", file), formatted);
                         })
                     } else {
-                        fs.copyFileSync(path.join(rootDirectory, data, file), path.join(rootDirectory, data, ".out", file))
+                        if(!file.startsWith("components/") && !file.startsWith("components\\")) {
+                            fs.copyFileSync(path.join(rootDirectory, data, file), path.join(rootDirectory, data, ".out", file))
+                        }
                     }
                 }
             }
         })
-
-
     });
 }
 
