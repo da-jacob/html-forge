@@ -17,6 +17,44 @@ let liveReloadPort = 35729;
 
 let win = null;
 
+const includeRegex = /<!--\s*include\s+"([^"]+)"(?:\s+([^>]+))?\s*-->/g;
+
+function parseIncludeParams(paramString) {
+    const params = {};
+    const paramRegex = /(\w+)\s*=\s*"([^"]*)"/g;
+    let match;
+    while ((match = paramRegex.exec(paramString)) !== null) {
+        const [_, key, value] = match;
+        params[key] = value;
+    }
+    return params;
+}
+
+function processIncludes(html, rootDirectory, project, depth = 0) {
+    if (depth > 10) {
+        return "<!-- Error: Max include depth exceeded -->";
+    }
+
+    return html.replace(includeRegex, (fullMatch, filePath, paramString = "") => {
+        const includePath = path.join(rootDirectory, project, filePath);
+        if (!fs.existsSync(includePath)) {
+            return `<!-- Error: File not found: ${filePath} -->`;
+        }
+
+        let includeContent = fs.readFileSync(includePath, "utf8");
+
+        const params = parseIncludeParams(paramString);
+        Object.entries(params).forEach(([key, value]) => {
+            const placeholderRegex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
+            includeContent = includeContent.replace(placeholderRegex, value);
+        });
+
+        includeContent = processIncludes(includeContent, rootDirectory, project, depth + 1);
+
+        return includeContent;
+    });
+}
+
 const createServer = (project) => {
     const app = express();
 
@@ -36,22 +74,8 @@ const createServer = (project) => {
                 if (err) {
                     return next();
                 }
-
-                const comments = parseComments(data);
-
-                let modifiedData = data;
-
-                comments.matches.forEach((match) => {
-                    const comment = match.groups.whole.trim();
-                    if (comment.includes("<!-- include")) {
-                        const file = comment.substr(14, comment.length - 19);
-                        const data2 = fs.readFileSync(
-                            path.join(rootDirectory, project, file),
-                            "utf8"
-                        );
-                        modifiedData = modifiedData.replace(comment, data2);
-                    }
-                });
+                
+                let modifiedData = processIncludes(data, rootDirectory, project);
 
                 res.setHeader("Content-Type", "text/html");
                 res.send(modifiedData);
