@@ -15,8 +15,10 @@
 1. Select a **root directory** where your projects will live.
 2. Create a **new project** – HtmlForge will generate a folder with basic structure (`index.html`, `assets/`, etc.).
 3. Use `<!--- include "file.html" -->` anywhere in your HTML to reuse components.
-4. Start the **live server** for previewing and editing with instant reload.
-5. Use **Build** to generate fully resolved static HTML files. The output will be placed in the `.out` directory within your project folder.
+4. Nested includes are supported (e.g., components can include other components).
+5. If you want, you can also define parameters: `<!-- include "components/button.html" text="Click me" link="/contact" -->`
+6. Start the **live server** for previewing and editing with instant reload.
+7. Use **Build** to generate fully resolved static HTML files. The output will be placed in the `.out` directory within your project folder.
 
 ## 📁 Example
 
@@ -27,19 +29,25 @@
     <title>My Site</title>
   </head>
   <body>
-    <!--- include "components/nav.html" -->
+    <!--- include "components/header.html" -->
     <h1>Welcome!</h1>
     <!--- include "components/footer.html" -->
   </body>
 </html>
 ```
 
-**nav.html**
+**components/header.html**
 ```html
 <nav>
-  <a href="/">Home</a>
+  <a href="/">Home</>
   <a href="/about.html">About</a>
+  <!--- include "components/button.html" text="Contact" link="/contact.html" -->
 </nav>
+```
+
+**components/button.html**
+```html
+<a href="{{ link }}">{{ text }}</a>
 ```
 
 On build, **index.html** will be compiled with the contents of **nav.html** and **footer.html** injected.
@@ -56,11 +64,23 @@ HtmlForge is available for **Windows** and can be downloaded from the [Releases 
 
 ## 🔧 Roadmap / Ideas
 
-* Use HTML-like attributes to them inside included files (eg. `<!-- include "components/button.html" text="..." -->`)
 * Support for macOS and Linux
 * Option to initialize Git repo on new project
 * Button to open project in external editor (e.g. VS Code)
 * Dark mode / themes
 
 ## 📃 License
-MPL-2.0
+HtmlForge is licensed under the **Mozilla Public License 2.0 (MPL 2.0)**.  
+See the `LICENSE` file for details.
+
+## 💬 Feedback & Contributing
+Found a bug or have an idea?  
+Please open an issue or PR — all ideas and contributions are welcome!
+
+## 🙋‍♂️ About
+Made by Jakub Lipár (@da‑jacob).  
+Follow along or leave feedback on GitHub!
+
+---
+
+Let me know if you’d like tweaks to the wording, a GIF demo, or any additional sections!
