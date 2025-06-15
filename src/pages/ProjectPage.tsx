@@ -55,6 +55,11 @@ export const ProjectPage = ({ project }: { project: string }) => {
         });
     }, []);
 
+    const initRepo = () => {
+        window.electronApi.initRepo(project);
+        getProject();
+    }
+
     useEffect(() => {
         getProject();
         window.electronApi.serverStatus(project).then((data) => {
@@ -92,7 +97,7 @@ export const ProjectPage = ({ project }: { project: string }) => {
                                     Git repository
                                 </div>
                             </td>
-                            <td className="py-1">{git}</td>
+                            <td className="py-1">{git} {git === "Not initialized" ? (<>| <button className="text-indigo-500 cursor-pointer hover:text-indigo-600" onClick={initRepo}>Initialize repository</button></>) : ''}</td>
                         </tr>
                         <tr>
                             <td className="py-1">

@@ -15,7 +15,7 @@ export const Sidebar = ({projects, onSettings, onProject, onNewProject, activePr
             <h2 className='text-indigo-300 my-4 px-2.5'>Projects</h2>
             <div className='flex flex-col h-full shrink overflow-auto -mx-4 mb-4'>
                 <div className='flex flex-col shrink grow h-full px-4 gap-1'>
-                    {projects.map((project, index) => {
+                    {projects && projects.map((project, index) => {
                         return (
                             <button key={index} className={`w-full shrink-0 flex items-center text-white px-2.5 py-2 transition-colors gap-3 rounded-lg hover:bg-indigo-500/50 cursor-pointer ${activeProject === project ? 'bg-indigo-500/50' : ''}`} onClick={() => onProject(project)}>
                                 {project}

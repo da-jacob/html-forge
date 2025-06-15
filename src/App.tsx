@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { TitleBar } from "./components/TitleBar";
-import { SetupModal } from "./components/SetupModal";
 import { ProjectPage } from "./pages/ProjectPage";
 import { NewProject } from "./pages/NewProject";
+import { SettingsPage } from "./pages/SettingsPage";
+import { HomePage } from "./pages/HomePage";
 
 declare global {
     interface Window {
@@ -15,29 +16,39 @@ declare global {
             checkSetup: () => void;
             selectDirectory: () => Promise<string>;
             saveConfig: (data: string) => Promise<boolean>;
-            createProject: (data: string) => void;
+            createProject: (data: {name: string; git: boolean}) => void;
             serverStatus: (data: string) => Promise<{running: boolean, url: string}>;
             serverStart: (data: string) => void;
             serverStop: (data: string) => void;
             buildProject: (data: string) => Promise<void>;
             openExternal: (url: string) => void,
             getProject: (url: string) => Promise<{path: string, lastBuild: Date|null, git: any}>,
+            checkGit: () => Promise<boolean>,
+            initRepo: (data: string) => Promise<void>,
+            getConfig: () => Promise<string>,
+            getVersion: () => Promise<string>
         };
     }
 }
 
 const App = () => {
-    const [setupOpen, setSetupOpen] = useState(false);
-    const [activePage, setActivePage] = useState<React.ReactNode>(null);
     const [projects, setProjects] = useState<Array<string>>([]);
     const [activeProject, setActiveProject] = useState<string>('');
+
+    const newProject = () => {
+        setActivePage(<NewProject projects={projects} onCreate={(project) => openProject(project)} />);
+        setActiveProject('');
+        window.electronApi.checkSetup();
+    };
+
+    const [activePage, setActivePage] = useState<React.ReactNode>(<HomePage onNewProject={newProject} />);
 
     useEffect(() => {
         window.electronApi.checkSetup();
         window.electronApi.onAppData((data: any) => {
             if (data.type === "setup") {
               if(!data.data) {
-                setSetupOpen(true);
+                setActivePage(<SettingsPage />)
               } else {
                 window.electronApi.getProjects();
                 window.electronApi.onAppData((data: any) => {
@@ -54,18 +65,10 @@ const App = () => {
         }, 1000);
     }, []);
 
-    const handleClose = () => {
-        setSetupOpen(false);
-    };
-
     const openProject = (project: string) => {
         setActivePage(<ProjectPage project={project} />);
         setActiveProject(project);
-    };
-
-    const newProject = () => {
-        setActivePage(<NewProject projects={projects} onCreate={(project) => openProject(project)} />);
-        setActiveProject('');
+        window.electronApi.checkSetup();
     };
 
     return (
@@ -73,7 +76,10 @@ const App = () => {
             <TitleBar />
             <div className="flex h-screen">
                 <Sidebar
-                    onSettings={() => setSetupOpen(true)}
+                    onSettings={() => {
+                        setActivePage(<SettingsPage />)
+                        setActiveProject('');
+                    }}
                     onProject={openProject}
                     onNewProject={newProject}
                     projects={projects}
@@ -81,7 +87,6 @@ const App = () => {
                 />
                 <div className="w-full shrink p-4">{activePage}</div>
             </div>
-            <SetupModal open={setupOpen} onClose={handleClose} />
         </>
     );
 };

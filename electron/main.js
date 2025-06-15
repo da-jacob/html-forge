@@ -7,7 +7,7 @@ import { format } from 'prettier';
 import processIncludes from "./util/html-builder.js";
 import createServer from "./util/live-server.js";
 import { fileURLToPath } from "url";
-import gitStatus from "./util/git.js";
+import gitStatus, { initRepository, isGitInstalled } from "./util/git.js";
 
 let rootDirectory = "";
 
@@ -93,6 +93,10 @@ function createWindow() {
         }
     });
 
+    ipcMain.handle("check-git", async (_, data) => {
+        return await isGitInstalled();
+    });
+
     ipcMain.on('open-external', (_event, url) => {
         if (url.startsWith('https://') || url.startsWith('http://')) {
             shell.openExternal(url);
@@ -111,6 +115,10 @@ function createWindow() {
         return result.filePaths[0];
     });
 
+    ipcMain.handle("get-version", async () => {
+        return app.getVersion();
+    });
+
     ipcMain.handle("save-config", async (_, data) => {
         writeFile(
             configPath,
@@ -120,7 +128,14 @@ function createWindow() {
         rootDirectory = data;
     });
 
+    ipcMain.handle("get-config", () => {
+        return rootDirectory;
+    });
+
     ipcMain.handle("create-project", async (_, data) => {
+
+        const {name, git} = data;
+
         let structurePath = "";
         if (app.isPackaged) {
             structurePath = join(process.resourcesPath, 'app.asar.unpacked', 'project-structure');
@@ -130,18 +145,25 @@ function createWindow() {
         if (rootDirectory) {
             cpSync(
                 structurePath,
-                join(rootDirectory, data),
+                join(rootDirectory, name),
                 { recursive: true }
             );
+
+            if(git) await initRepository(join(rootDirectory, name));
+
             const projects = readdirSync(rootDirectory).filter((file) => {
                 return statSync(join(rootDirectory, file))
                     .isDirectory();
             });
             win.webContents.send("app-data", {
                 type: "get-projects",
-                data: projects,
+                name: projects,
             });
         }
+    });
+
+    ipcMain.handle("init-git", async (_, data) => {
+        await initRepository(join(rootDirectory, data));
     });
 
     ipcMain.handle("server-start", async (_, data) => {

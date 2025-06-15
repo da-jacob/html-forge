@@ -14,5 +14,9 @@ contextBridge.exposeInMainWorld("electronApi", {
     serverStart: (data) => ipcRenderer.invoke('server-start', data),
     buildProject: (data) => ipcRenderer.invoke('project-build', data),
     openExternal: (url) => ipcRenderer.send('open-external', url),
-    getProject: (data) => ipcRenderer.invoke('get-project', data)
+    getProject: (data) => ipcRenderer.invoke('get-project', data),
+    checkGit: () => ipcRenderer.invoke('check-git'),
+    initRepo: (data) => ipcRenderer.invoke('init-git', data),
+    getConfig: () => ipcRenderer.invoke('get-config'),
+    getVersion: () => ipcRenderer.invoke('get-version')
 });

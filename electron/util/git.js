@@ -1,7 +1,7 @@
 import simpleGit from "simple-git";
 import { exec } from 'child_process';
 
-const isGitInstalled = () => {
+export const isGitInstalled = () => {
     return new Promise((resolve) => {
         exec('git --version', (error) => {
             resolve(!error);
@@ -10,7 +10,7 @@ const isGitInstalled = () => {
 }
 
 const gitStatus = async (path) => {
-    let result = "Not inizialized";
+    let result = "Not initialized";
 
     if(await isGitInstalled()) {
         const git = simpleGit(path);
@@ -28,6 +28,11 @@ const gitStatus = async (path) => {
     }
 
     return result;
+}
+
+export const initRepository = async (path) => {
+    const git = simpleGit(path);
+    await git.init();
 }
 
 export default gitStatus;
