@@ -1,124 +1,22 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
-const path = require("path");
-const fs = require("fs");
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
+import { dirname, join } from "path";
+import { existsSync, readFile, readdirSync, statSync, writeFile, cpSync, rmSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from "fs";
 
-var prettier = require('prettier');
+import { format } from 'prettier';
 
-const express = require("express");
-const simpleGit = require('simple-git');
-const livereload = require("livereload");
-const connectLiveReload = require("connect-livereload");
-const { exec } = require('child_process');
+import processIncludes from "./util/html-builder.js";
+import createServer from "./util/live-server.js";
+import { fileURLToPath } from "url";
+import gitStatus from "./util/git.js";
 
 let rootDirectory = "";
 
 const servers = [];
 
-let liveReloadPort = 35729;
-
 let win = null;
 
-const includeRegex = /<!--\s*include\s+"([^"]+)"(?:\s+([^>]+))?\s*-->/g;
-
-
-function isGitInstalled() {
-    return new Promise((resolve) => {
-        exec('git --version', (error) => {
-            resolve(!error);
-        });
-    });
-}
-
-function parseIncludeParams(paramString) {
-    const params = {};
-    const paramRegex = /(\w+)\s*=\s*"([^"]*)"/g;
-    let match;
-    while ((match = paramRegex.exec(paramString)) !== null) {
-        const [_, key, value] = match;
-        params[key] = value;
-    }
-    return params;
-}
-
-function processIncludes(html, rootDirectory, project, depth = 0) {
-    if (depth > 10) {
-        return "<!-- Error: Max include depth exceeded -->";
-    }
-
-    return html.replace(includeRegex, (fullMatch, filePath, paramString = "") => {
-        const includePath = path.join(rootDirectory, project, filePath);
-        if (!fs.existsSync(includePath)) {
-            return `<!-- Error: File not found: ${filePath} -->`;
-        }
-
-        let includeContent = fs.readFileSync(includePath, "utf8");
-
-        const params = parseIncludeParams(paramString);
-        Object.entries(params).forEach(([key, value]) => {
-            const placeholderRegex = new RegExp(`{{\\s*${key}\\s*}}`, "g");
-            includeContent = includeContent.replace(placeholderRegex, value);
-        });
-
-        includeContent = processIncludes(includeContent, rootDirectory, project, depth + 1);
-
-        return includeContent;
-    });
-}
-
-const createServer = (project) => {
-    const app = express();
-
-    const staticDir = path.join(rootDirectory, project);
-
-    const liveReloadServer = livereload.createServer({ port: liveReloadPort });
-    liveReloadServer.watch(staticDir);
-
-    app.use(connectLiveReload({ port: liveReloadPort }));
-
-    liveReloadPort++;
-
-    app.use((req, res, next) => {
-        const filePath = path.join(staticDir, req.path);
-        if (req.path.endsWith(".html")) {
-            fs.readFile(filePath, "utf8", (err, data) => {
-                if (err) {
-                    return next();
-                }
-                
-                let modifiedData = processIncludes(data, rootDirectory, project);
-
-                res.setHeader("Content-Type", "text/html");
-                res.send(modifiedData);
-            });
-        } else {
-            next();
-        }
-    });
-
-    app.use(express.static(staticDir));
-
-    const server = app.listen(0, () => {
-        const address = server.address();
-
-        win.webContents.send("app-data", {
-            type: "server-start",
-            data: {
-                project: project,
-                url: `http://localhost:${address.port}/index.html`
-            },
-        });
-
-        console.log(
-            `Server running on: http://localhost:${address.port}/index.html`
-        );
-
-        servers.push({
-            project,
-            server,
-            url: `http://localhost:${address.port}/index.html`
-        })
-    });
-};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 function createWindow() {
     win = new BrowserWindow({
@@ -127,16 +25,16 @@ function createWindow() {
         minWidth: 800,
         minHeight: 500,
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
+            preload: join(__dirname, "preload.js"),
         },
         title: "HtmlForge",
         frame: false,
     });
 
-    const configPath = path.join(app.getPath('userData'), 'config.json');
+    const configPath = join(app.getPath('userData'), 'config.json');
 
     if (app.isPackaged) {
-       const indexPath = path.join(__dirname, '../dist/index.html');
+       const indexPath = join(__dirname, '../dist/index.html');
         win.loadFile(indexPath);
     } else {
         win.loadURL('http://localhost:5173');
@@ -157,13 +55,13 @@ function createWindow() {
     });
 
     ipcMain.on("check-setup", () => {
-        if (!fs.existsSync(configPath)) {
+        if (!existsSync(configPath)) {
             win.webContents.send("app-data", { type: "setup", data: false });
         } else {
             win.webContents.send("app-data", { type: "setup", data: true });
         }
 
-        fs.readFile(
+        readFile(
             configPath,
             "utf8",
             (err, data) => {
@@ -174,9 +72,8 @@ function createWindow() {
 
     ipcMain.on("get-projects", () => {
         if (rootDirectory) {
-            const projects = fs.readdirSync(rootDirectory).filter((file) => {
-                return fs
-                    .statSync(path.join(rootDirectory, file))
+            const projects = readdirSync(rootDirectory).filter((file) => {
+                return statSync(join(rootDirectory, file))
                     .isDirectory();
             });
             win.webContents.send("app-data", {
@@ -187,29 +84,12 @@ function createWindow() {
     });
 
     ipcMain.handle("get-project", async (_, data) => {
-        const buildExists = fs.existsSync(path.join(rootDirectory, data, ".out"));
-
-        let gitStatus = "Not inizialized";
-        if(await isGitInstalled()) {
-            const git = simpleGit(path.join(rootDirectory, data));
-            const isRepo = await git.checkIsRepo('root');
-            if(isRepo){
-                const [status, branch] = await Promise.all([
-                    git.status(),
-                    git.branchLocal()
-                ]);
-    
-                gitStatus = `${branch.current} (${status.files.length} changes)`
-            }
-        } else {
-            gitStatus = "Git is not installed";
-        }
-
+        const buildExists = existsSync(join(rootDirectory, data, ".out"));
         
         return {
-            path: path.join(rootDirectory, data),
-            lastBuild: buildExists ? fs.statSync(path.join(rootDirectory, data, ".out")).mtime : null,
-            git: gitStatus
+            path: join(rootDirectory, data),
+            lastBuild: buildExists ? statSync(join(rootDirectory, data, ".out")).mtime : null,
+            git: await gitStatus(join(rootDirectory, data))
         }
     });
 
@@ -232,7 +112,7 @@ function createWindow() {
     });
 
     ipcMain.handle("save-config", async (_, data) => {
-        fs.writeFile(
+        writeFile(
             configPath,
             JSON.stringify({ rootDirectory: data }),
             () => {}
@@ -243,19 +123,18 @@ function createWindow() {
     ipcMain.handle("create-project", async (_, data) => {
         let structurePath = "";
         if (app.isPackaged) {
-            structurePath = path.join(process.resourcesPath, 'app.asar.unpacked', 'project-structure');
+            structurePath = join(process.resourcesPath, 'app.asar.unpacked', 'project-structure');
         } else {
-            structurePath = path.join(__dirname, "../project-structure");
+            structurePath = join(__dirname, "../project-structure");
         }
         if (rootDirectory) {
-            fs.cpSync(
+            cpSync(
                 structurePath,
-                path.join(rootDirectory, data),
+                join(rootDirectory, data),
                 { recursive: true }
             );
-            const projects = fs.readdirSync(rootDirectory).filter((file) => {
-                return fs
-                    .statSync(path.join(rootDirectory, file))
+            const projects = readdirSync(rootDirectory).filter((file) => {
+                return statSync(join(rootDirectory, file))
                     .isDirectory();
             });
             win.webContents.send("app-data", {
@@ -266,7 +145,7 @@ function createWindow() {
     });
 
     ipcMain.handle("server-start", async (_, data) => {
-        createServer(data);
+        servers.push(createServer(data, rootDirectory, win));
     });
 
     ipcMain.handle("server-status", async (_, data) => {
@@ -291,33 +170,33 @@ function createWindow() {
     });
 
     ipcMain.handle("project-build", async (_, data) => {
-        fs.rmSync(path.join(rootDirectory, data, ".out"), {recursive: true, force: true});
+        rmSync(join(rootDirectory, data, ".out"), {recursive: true, force: true});
 
-        const files = fs.readdirSync(
-            path.join(rootDirectory, data),
+        const files = readdirSync(
+            join(rootDirectory, data),
             { recursive: true }
         );
 
-        fs.mkdirSync(path.join(rootDirectory, data, ".out"));
+        mkdirSync(join(rootDirectory, data, ".out"));
 
         files.forEach(file => {
             if(file !== ".out") {
-                if(fs.statSync(path.join(rootDirectory, data, file)).isDirectory()) {
+                if(statSync(join(rootDirectory, data, file)).isDirectory()) {
                     if(file !== "components"){
-                        fs.mkdirSync(path.join(rootDirectory, data, ".out", file));
+                        mkdirSync(join(rootDirectory, data, ".out", file));
                     }
                 } else {
                     if(file.endsWith('.html') && !file.startsWith("components/") && !file.startsWith("components\\")) {
-                        const f = fs.readFileSync(path.join(rootDirectory, data, file), "utf8");
+                        const f = readFileSync(join(rootDirectory, data, file), "utf8");
 
                         let modifiedData = processIncludes(f, rootDirectory, data);
 
-                        prettier.format(modifiedData, {parser: 'html'}).then((formatted) => {
-                            fs.writeFileSync(path.join(rootDirectory, data, ".out", file), formatted);
+                        format(modifiedData, {parser: 'html'}).then((formatted) => {
+                            writeFileSync(join(rootDirectory, data, ".out", file), formatted);
                         })
                     } else {
                         if(!file.startsWith("components/") && !file.startsWith("components\\")) {
-                            fs.copyFileSync(path.join(rootDirectory, data, file), path.join(rootDirectory, data, ".out", file))
+                            copyFileSync(join(rootDirectory, data, file), join(rootDirectory, data, ".out", file))
                         }
                     }
                 }
