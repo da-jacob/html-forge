@@ -67,7 +67,6 @@ HtmlForge is available for **Windows** and can be downloaded from the [Releases 
 ## 🔧 Roadmap / Ideas
 
 * Support for macOS and Linux
-* Option to initialize Git repo on new project
 * Button to open project in external editor (e.g. VS Code)
 * Dark mode / themes
 
