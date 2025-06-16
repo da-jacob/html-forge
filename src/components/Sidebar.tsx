@@ -1,10 +1,20 @@
 import { Icon } from '@iconify/react';
 
 import logo from "../assets/logo.png";
+import { useEffect, useState } from 'react';
 
 export const Sidebar = ({projects, onSettings, onProject, onNewProject, activeProject}: {projects: string[], onSettings: () => void, onProject: (project: string) => void, onNewProject: () => void, activeProject: string}) => {
+
+    const [isMac, setIsMac] = useState(false);
+
+    useEffect(() => {
+        window.electronApi.getPlatform().then((paltform) => {
+            setIsMac(paltform === "darwin");
+        })
+    })
+
     return (
-        <div className="w-80 h-full bg-gradient-to-t from-indigo-900 to-indigo-700 p-4 flex flex-col justify-between shrink-0 select-none">
+        <div className={`w-80 h-full bg-gradient-to-t from-indigo-900 to-indigo-700 p-4 flex flex-col justify-between shrink-0 select-none ${isMac ? 'pt-10' : ''}`}>
             <div className='flex items-center gap-4 p-2 font-semibold text-white mb-4'>
                 <img src={logo} width={24} height={24} />
                 HtmlForge

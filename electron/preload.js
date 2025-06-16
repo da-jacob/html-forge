@@ -18,5 +18,6 @@ contextBridge.exposeInMainWorld("electronApi", {
     checkGit: () => ipcRenderer.invoke('check-git'),
     initRepo: (data) => ipcRenderer.invoke('init-git', data),
     getConfig: () => ipcRenderer.invoke('get-config'),
-    getVersion: () => ipcRenderer.invoke('get-version')
+    getVersion: () => ipcRenderer.invoke('get-version'),
+    getPlatform: () => ipcRenderer.invoke('get-platform')
 });

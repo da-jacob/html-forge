@@ -26,7 +26,8 @@ declare global {
             checkGit: () => Promise<boolean>,
             initRepo: (data: string) => Promise<void>,
             getConfig: () => Promise<string>,
-            getVersion: () => Promise<string>
+            getVersion: () => Promise<string>,
+            getPlatform: () => Promise<string>
         };
     }
 }

@@ -27,18 +27,15 @@ function createWindow() {
         webPreferences: {
             preload: join(__dirname, "preload.js"),
         },
+        titleBarStyle: "hiddenInset",
         title: "HtmlForge",
         frame: false,
     });
 
     const configPath = join(app.getPath('userData'), 'config.json');
 
-    if (app.isPackaged) {
        const indexPath = join(__dirname, '../dist/index.html');
         win.loadFile(indexPath);
-    } else {
-        win.loadURL('http://localhost:5173');
-    }
 
     // win.webContents.openDevTools();
 
@@ -95,6 +92,10 @@ function createWindow() {
 
     ipcMain.handle("check-git", async (_, data) => {
         return await isGitInstalled();
+    });
+
+    ipcMain.handle("get-platform", () => {
+        return process.platform;
     });
 
     ipcMain.on('open-external', (_event, url) => {
@@ -230,5 +231,5 @@ function createWindow() {
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
-    if (process.platform !== "darwin") app.quit();
+    app.quit();
 });
