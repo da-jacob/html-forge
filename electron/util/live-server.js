@@ -20,8 +20,8 @@ const createServer = (project, rootDirectory, window) => {
     liveReloadPort++;
 
     app.use((req, res, next) => {
-        const filePath = path.join(staticDir, req.path);
-        if (req.path.endsWith(".html")) {
+        if (req.path.endsWith(".html") || req.path.endsWith("/")) {
+            const filePath = path.join(staticDir, req.path.endsWith(".html") ? req.path : req.path + "/index.html");
             fs.readFile(filePath, "utf8", (err, data) => {
                 if (err) {
                     return next();
