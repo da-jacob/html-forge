@@ -24,6 +24,9 @@
     "win": {
       "icon": "favicon.ico"
     },
+    "mac": {
+      "icon": "logo.png"
+    },
     "files": [
       "dist",
       "electron",
