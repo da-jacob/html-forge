@@ -1,8 +1,20 @@
 import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import { dirname, join } from "path";
-import { existsSync, readFile, readdirSync, statSync, writeFile, cpSync, rmSync, mkdirSync, readFileSync, writeFileSync, copyFileSync } from "fs";
+import {
+    existsSync,
+    readFile,
+    readdirSync,
+    statSync,
+    writeFile,
+    cpSync,
+    rmSync,
+    mkdirSync,
+    readFileSync,
+    writeFileSync,
+    copyFileSync,
+} from "fs";
 
-import { format } from 'prettier';
+import { format } from "prettier";
 
 import processIncludes from "./util/html-builder.js";
 import createServer from "./util/live-server.js";
@@ -32,10 +44,10 @@ function createWindow() {
         frame: false,
     });
 
-    const configPath = join(app.getPath('userData'), 'config.json');
+    const configPath = join(app.getPath("userData"), "config.json");
 
-       const indexPath = join(__dirname, '../dist/index.html');
-        win.loadFile(indexPath);
+    const indexPath = join(__dirname, "../dist/index.html");
+    win.loadFile(indexPath);
 
     // win.webContents.openDevTools();
 
@@ -58,20 +70,15 @@ function createWindow() {
             win.webContents.send("app-data", { type: "setup", data: true });
         }
 
-        readFile(
-            configPath,
-            "utf8",
-            (err, data) => {
-                if(data) rootDirectory = JSON.parse(data).rootDirectory;
-            }
-        );
+        readFile(configPath, "utf8", (err, data) => {
+            if (data) rootDirectory = JSON.parse(data).rootDirectory;
+        });
     });
 
     ipcMain.on("get-projects", () => {
         if (rootDirectory) {
             const projects = readdirSync(rootDirectory).filter((file) => {
-                return statSync(join(rootDirectory, file))
-                    .isDirectory();
+                return statSync(join(rootDirectory, file)).isDirectory();
             });
             win.webContents.send("app-data", {
                 type: "get-projects",
@@ -82,12 +89,14 @@ function createWindow() {
 
     ipcMain.handle("get-project", async (_, data) => {
         const buildExists = existsSync(join(rootDirectory, data, ".out"));
-        
+
         return {
             path: join(rootDirectory, data),
-            lastBuild: buildExists ? statSync(join(rootDirectory, data, ".out")).mtime : null,
-            git: await gitStatus(join(rootDirectory, data))
-        }
+            lastBuild: buildExists
+                ? statSync(join(rootDirectory, data, ".out")).mtime
+                : null,
+            git: await gitStatus(join(rootDirectory, data)),
+        };
     });
 
     ipcMain.handle("check-git", async (_, data) => {
@@ -98,8 +107,8 @@ function createWindow() {
         return process.platform;
     });
 
-    ipcMain.on('open-external', (_event, url) => {
-        if (url.startsWith('https://') || url.startsWith('http://')) {
+    ipcMain.on("open-external", (_event, url) => {
+        if (url.startsWith("https://") || url.startsWith("http://")) {
             shell.openExternal(url);
         }
     });
@@ -134,27 +143,29 @@ function createWindow() {
     });
 
     ipcMain.handle("create-project", async (_, data) => {
-
-        const {name, git} = data;
+        const { name, git } = data;
 
         let structurePath = "";
         if (app.isPackaged) {
-            structurePath = join(process.resourcesPath, 'app.asar.unpacked', 'project-structure');
+            structurePath = join(
+                process.resourcesPath,
+                "app.asar.unpacked",
+                "project-structure"
+            );
         } else {
             structurePath = join(__dirname, "../project-structure");
         }
         if (rootDirectory) {
-            cpSync(
-                structurePath,
-                join(rootDirectory, name),
-                { recursive: true }
-            );
+            cpSync(structurePath, join(rootDirectory, name), {
+                recursive: true,
+            });
 
-            if(git) await initRepository(join(rootDirectory, name));
+            if (git) await initRepository(join(rootDirectory, name));
+
+            if (!git) rmSync(join(rootDirectory, name, ".gitignore"));
 
             const projects = readdirSync(rootDirectory).filter((file) => {
-                return statSync(join(rootDirectory, file))
-                    .isDirectory();
+                return statSync(join(rootDirectory, file)).isDirectory();
             });
             win.webContents.send("app-data", {
                 type: "get-projects",
@@ -164,7 +175,20 @@ function createWindow() {
     });
 
     ipcMain.handle("init-git", async (_, data) => {
+
+        let structurePath = "";
+        if (app.isPackaged) {
+            structurePath = join(
+                process.resourcesPath,
+                "app.asar.unpacked",
+                "project-structure"
+            );
+        } else {
+            structurePath = join(__dirname, "../project-structure");
+        }
+
         await initRepository(join(rootDirectory, data));
+        cpSync(join(structurePath, ".gitignore"), join(rootDirectory, data, ".gitignore"));
     });
 
     ipcMain.handle("server-start", async (_, data) => {
@@ -176,55 +200,81 @@ function createWindow() {
 
         return {
             running: s.length > 0,
-            url: s.length > 0 ? s[0].url : ''
-        }
+            url: s.length > 0 ? s[0].url : "",
+        };
     });
 
     ipcMain.handle("server-stop", async (_, data) => {
-        servers.filter((server) => server.project === data).forEach(server => {
-            server.server.close(() => {
-                win.webContents.send("app-data", {
-                    type: "server-stop",
-                    data: server.project,
+        servers
+            .filter((server) => server.project === data)
+            .forEach((server) => {
+                server.server.close(() => {
+                    win.webContents.send("app-data", {
+                        type: "server-stop",
+                        data: server.project,
+                    });
                 });
+                servers.splice(servers.indexOf(server), 1);
             });
-            servers.splice(servers.indexOf(server), 1);
-        })
     });
 
     ipcMain.handle("project-build", async (_, data) => {
-        rmSync(join(rootDirectory, data, ".out"), {recursive: true, force: true});
+        rmSync(join(rootDirectory, data, ".out"), {
+            recursive: true,
+            force: true,
+        });
 
-        const files = readdirSync(
-            join(rootDirectory, data),
-            { recursive: true }
-        );
+        const files = readdirSync(join(rootDirectory, data), {
+            recursive: true,
+        });
 
         mkdirSync(join(rootDirectory, data, ".out"));
 
-        files.forEach(file => {
-            if(file !== ".out") {
-                if(statSync(join(rootDirectory, data, file)).isDirectory()) {
-                    if(file !== "components"){
+        files.forEach((file) => {
+            if (file !== ".out" && !file.startsWith(".git")) {
+                if (statSync(join(rootDirectory, data, file)).isDirectory()) {
+                    if (file !== "components") {
                         mkdirSync(join(rootDirectory, data, ".out", file));
                     }
                 } else {
-                    if(file.endsWith('.html') && !file.startsWith("components/") && !file.startsWith("components\\")) {
-                        const f = readFileSync(join(rootDirectory, data, file), "utf8");
+                    if (
+                        file.endsWith(".html") &&
+                        !file.startsWith("components/") &&
+                        !file.startsWith("components\\")
+                    ) {
+                        const f = readFileSync(
+                            join(rootDirectory, data, file),
+                            "utf8"
+                        );
 
-                        let modifiedData = processIncludes(f, rootDirectory, data);
+                        let modifiedData = processIncludes(
+                            f,
+                            rootDirectory,
+                            data
+                        );
 
-                        format(modifiedData, {parser: 'html'}).then((formatted) => {
-                            writeFileSync(join(rootDirectory, data, ".out", file), formatted);
-                        })
+                        format(modifiedData, { parser: "html" }).then(
+                            (formatted) => {
+                                writeFileSync(
+                                    join(rootDirectory, data, ".out", file),
+                                    formatted
+                                );
+                            }
+                        );
                     } else {
-                        if(!file.startsWith("components/") && !file.startsWith("components\\")) {
-                            copyFileSync(join(rootDirectory, data, file), join(rootDirectory, data, ".out", file))
+                        if (
+                            !file.startsWith("components/") &&
+                            !file.startsWith("components\\")
+                        ) {
+                            copyFileSync(
+                                join(rootDirectory, data, file),
+                                join(rootDirectory, data, ".out", file)
+                            );
                         }
                     }
                 }
             }
-        })
+        });
     });
 }
 
